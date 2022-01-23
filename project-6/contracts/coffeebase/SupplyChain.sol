@@ -174,11 +174,27 @@ contract SupplyChain {
                        string memory _productNotes) public 
   {
     // Add the new item as part of Harvest
+    Item memory i = Item(sku,
+                         _upc,
+                         msg.sender,
+                         _originFarmerID,
+                         _originFarmName,
+                         _originFarmInformation,
+                         _originFarmLatitude,
+                         _originFarmLongitude,
+                         _upc + sku,
+                         _productNotes,
+                         0,
+                         State.Harvested,
+                         address(0),
+                         address(0),
+                         address(0));
     
-    // Increment sku
+    // Increment sku for the next harvest
     sku = sku + 1;
+
     // Emit the appropriate event
-    
+    emit Harvested(_upc);
   }
 
   // Define a function 'processtItem' that allows a farmer to mark an item 'Processed'
