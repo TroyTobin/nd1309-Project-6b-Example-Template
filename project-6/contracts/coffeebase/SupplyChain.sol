@@ -1,4 +1,4 @@
-pragma solidity ^0.4.24;
+pragma solidity >=0.4.24;
 // Define a contract 'Supplychain'
 contract SupplyChain {
 
@@ -62,6 +62,13 @@ contract SupplyChain {
   event Received(uint upc);
   event Purchased(uint upc);
 
+  // Function that allows you to convert an address into a payable address
+  // From Project 2 codebase
+  function _make_address_payable(address x) internal pure returns (address payable) {
+        return address(uint160(x));
+  }
+
+
   // Define a modifer that checks to see if msg.sender == owner of the contract
   modifier onlyOwner() {
     require(msg.sender == owner);
@@ -85,7 +92,9 @@ contract SupplyChain {
     _;
     uint _price = items[_upc].productPrice;
     uint amountToReturn = msg.value - _price;
-    items[_upc].consumerID.transfer(amountToReturn);
+
+    address payable consumerID = _make_address_payable(items[_upc].consumerID);
+    consumerID.transfer(amountToReturn);
   }
 
   // Define a modifier that checks if an item.state of a upc is Harvested
@@ -148,12 +157,21 @@ contract SupplyChain {
   // Define a function 'kill' if required
   function kill() public {
     if (msg.sender == owner) {
-      selfdestruct(owner);
+
+      // Self destruct destroys the contract and sends all remaining ether to the specified address
+      address payable owner_payable = _make_address_payable(owner);
+      selfdestruct(owner_payable);
     }
   }
 
   // Define a function 'harvestItem' that allows a farmer to mark an item 'Harvested'
-  function harvestItem(uint _upc, address _originFarmerID, string _originFarmName, string _originFarmInformation, string  _originFarmLatitude, string  _originFarmLongitude, string  _productNotes) public 
+  function harvestItem(uint _upc,
+                       address _originFarmerID,
+                       string memory _originFarmName,
+                       string memory _originFarmInformation,
+                       string memory _originFarmLatitude,
+                       string memory _originFarmLongitude,
+                       string memory _productNotes) public 
   {
     // Add the new item as part of Harvest
     
@@ -269,10 +287,10 @@ contract SupplyChain {
   uint    itemUPC,
   address ownerID,
   address originFarmerID,
-  string  originFarmName,
-  string  originFarmInformation,
-  string  originFarmLatitude,
-  string  originFarmLongitude
+  string memory  originFarmName,
+  string memory  originFarmInformation,
+  string memory  originFarmLatitude,
+  string memory  originFarmLongitude
   ) 
   {
   // Assign values to the 8 parameters
@@ -297,7 +315,7 @@ contract SupplyChain {
   uint    itemSKU,
   uint    itemUPC,
   uint    productID,
-  string  productNotes,
+  string  memory productNotes,
   uint    productPrice,
   uint    itemState,
   address distributorID,

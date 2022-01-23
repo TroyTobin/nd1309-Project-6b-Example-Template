@@ -1,0 +1,6 @@
+# Ignore truffle builds
+build/
+
+# Ignore NPM installed packages
+node_modules/
+package-lock.json
