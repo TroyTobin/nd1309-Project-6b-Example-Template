@@ -255,60 +255,102 @@ contract SupplyChain is FarmerRole, DistributorRole, RetailerRole, ConsumerRole 
   // Use the above defined modifiers to check if the item is available for sale, if the buyer has paid enough, 
   // and any excess ether sent is refunded back to the buyer
   function buyItem(uint _upc) public payable 
-    // Call modifier to check if upc has passed previous supply chain stage
-    
-    // Call modifer to check if buyer has paid enough
-    
+    // Call modifier to check that the caller is a DistributorRole
+    onlyDistributor()
+    // Call modifier to check if upc has been listed forSale
+    isForSale(_upc)
+    // Call modifer to check if distributor has paid enough
+    paidEnough(items[_upc].productPrice)
     // Call modifer to send any excess ether back to buyer
-    
+    checkValue(_upc)
     {
     
-    // Update the appropriate fields - ownerID, distributorID, itemState
-    
+    // The new owner is the distributor as they are the intermediary
+    items[_upc].ownerID = msg.sender;
+
+    // Distributor ID is the caller
+    items[_upc].distributorID = msg.sender;
+
+    // Item is now sold
+    items[_upc].itemState = State.Sold;
+
     // Transfer money to farmer
+    address payable farmer_address = _make_address_payable(items[_upc].originFarmerID);
+    farmer_address.transfer(items[_upc].productPrice);
     
     // emit the appropriate event
-    
+    emit Sold(_upc);
   }
 
   // Define a function 'shipItem' that allows the distributor to mark an item 'Shipped'
   // Use the above modifers to check if the item is sold
   function shipItem(uint _upc) public 
-    // Call modifier to check if upc has passed previous supply chain stage
-    
+    // Call modifier to check that the caller is a DistributorRole
+    onlyDistributor()
+    // Call modifier to check if upc been bought
+    isSold(_upc)
     // Call modifier to verify caller of this function
-    
+    verifyCaller(items[_upc].distributorID)
     {
-    // Update the appropriate fields
+    // Item is now shipped 
+    items[_upc].itemState = State.Shipped;
     
     // Emit the appropriate event
-    
+    emit Shipped(_upc);
   }
 
   // Define a function 'receiveItem' that allows the retailer to mark an item 'Received'
   // Use the above modifiers to check if the item is shipped
   function receiveItem(uint _upc) public 
-    // Call modifier to check if upc has passed previous supply chain stage
-    
+    // Call modifier to check that the caller is a RetailerRole
+    onlyRetailer()
+    // Call modifier to check if upc has been shipped
+    isShipped(_upc)
+    // Call modifer to check if retailer has paid enough
+    paidEnough(items[_upc].productPrice)
+    // Call modifer to send any excess ether back to buyer
+    checkValue(_upc)
     // Access Control List enforced by calling Smart Contract / DApp
     {
-    // Update the appropriate fields - ownerID, retailerID, itemState
+    // The new owner is the retailer as they are the intermediary
+    items[_upc].ownerID = msg.sender;
+
+    // Retailer ID is the caller
+    items[_upc].retailerID = msg.sender;
+
+    // Transfer money to distributor
+    address payable distributor_address = _make_address_payable(items[_upc].distributorID);
+    distributor_address.transfer(items[_upc].productPrice);
     
     // Emit the appropriate event
-    
+    emit Received(_upc);
   }
 
   // Define a function 'purchaseItem' that allows the consumer to mark an item 'Purchased'
   // Use the above modifiers to check if the item is received
   function purchaseItem(uint _upc) public 
-    // Call modifier to check if upc has passed previous supply chain stage
-    
+    // Call modifier to check that the caller is a ConsumerRole
+    onlyConsumer()
+    // Call modifier to check if upc has been received
+    isReceived(_upc)
+    // Call modifer to check if consumer has paid enough
+    paidEnough(items[_upc].productPrice)
+    // Call modifer to send any excess ether back to buyer
+    checkValue(_upc)
     // Access Control List enforced by calling Smart Contract / DApp
     {
-    // Update the appropriate fields - ownerID, consumerID, itemState
+    // The new owner is the consumer as they are the final endpoint
+    items[_upc].ownerID = msg.sender;
+
+    // Consumer ID is the caller
+    items[_upc].consumerID = msg.sender;
     
+    // Transfer money to the retailer
+    address payable retailer_address = _make_address_payable(items[_upc].retailerID);
+    retailer_address.transfer(items[_upc].productPrice);
+
     // Emit the appropriate event
-    
+    emit Purchased(_upc);
   }
 
   // Define a function 'fetchItemBufferOne' that fetches the data
