@@ -67,13 +67,6 @@ contract SupplyChain is FarmerRole, DistributorRole, RetailerRole, ConsumerRole 
   event Received(uint upc);
   event Purchased(uint upc);
 
-  // Function that allows you to convert an address into a payable address
-  // From Project 2 codebase
-  function _make_address_payable(address x) internal pure returns (address payable) {
-    return address(uint160(x));
-  }
-
-
   // Define a modifer that checks to see if msg.sender == owner of the contract
   modifier onlyOwner() {
     require(msg.sender == owner);
@@ -87,18 +80,18 @@ contract SupplyChain is FarmerRole, DistributorRole, RetailerRole, ConsumerRole 
   }
 
   // Define a modifier that checks if the paid amount is sufficient to cover the price
-  modifier paidEnough(uint _price) { 
-    require(msg.value >= _price); 
+  modifier paidEnough(uint value, uint _price) { 
+    require(value >= _price); 
     _;
   }
   
   // Define a modifier that checks the price and refunds the remaining balance
-  modifier checkValue(uint _upc) {
+  modifier checkValue(uint value, uint _upc) {
     _;
     uint _price = items[_upc].productPrice;
-    uint amountToReturn = msg.value - _price;
+    uint amountToReturn = value - _price;
 
-    address payable consumerID = _make_address_payable(items[_upc].consumerID);
+    address payable consumerID = payable(items[_upc].consumerID);
     consumerID.transfer(amountToReturn);
   }
 
@@ -153,7 +146,7 @@ contract SupplyChain is FarmerRole, DistributorRole, RetailerRole, ConsumerRole 
   // In the constructor set 'owner' to the address that instantiated the contract
   // and set 'sku' to 1
   // and set 'upc' to 1
-  constructor() public payable {
+  constructor() payable {
     owner = msg.sender;
     sku = 1;
     upc = 1;
@@ -164,7 +157,7 @@ contract SupplyChain is FarmerRole, DistributorRole, RetailerRole, ConsumerRole 
     if (msg.sender == owner) {
 
       // Self destruct destroys the contract and sends all remaining ether to the specified address
-      address payable owner_payable = _make_address_payable(owner);
+      address payable owner_payable = payable(owner);
       selfdestruct(owner_payable);
     }
   }
@@ -194,6 +187,8 @@ contract SupplyChain is FarmerRole, DistributorRole, RetailerRole, ConsumerRole 
                          address(0),
                          address(0),
                          address(0));
+    
+    items[_upc] = i;
     
     // Increment sku for the next harvest
     sku = sku + 1;
@@ -245,6 +240,9 @@ contract SupplyChain is FarmerRole, DistributorRole, RetailerRole, ConsumerRole 
   {
     // Update the state to be 'for sale'
     items[_upc].itemState = State.ForSale;
+
+    // Set the sale price
+    items[_upc].productPrice = _price;
     
     // Emit the 'for sale' event
     emit ForSale(_upc);
@@ -259,9 +257,9 @@ contract SupplyChain is FarmerRole, DistributorRole, RetailerRole, ConsumerRole 
     // Call modifier to check if upc has been listed forSale
     isForSale(_upc)
     // Call modifer to check if distributor has paid enough
-    paidEnough(items[_upc].productPrice)
+    paidEnough(msg.value, items[_upc].productPrice)
     // Call modifer to send any excess ether back to buyer
-    checkValue(_upc)
+    checkValue(msg.value, upc)
   {
     
     // The new owner is the distributor as they are the intermediary
@@ -274,7 +272,7 @@ contract SupplyChain is FarmerRole, DistributorRole, RetailerRole, ConsumerRole 
     items[_upc].itemState = State.Sold;
 
     // Transfer money to farmer
-    address payable farmer_address = _make_address_payable(items[_upc].originFarmerID);
+    address payable farmer_address = payable(items[_upc].originFarmerID);
     farmer_address.transfer(items[_upc].productPrice);
     
     // emit the appropriate event
@@ -300,15 +298,15 @@ contract SupplyChain is FarmerRole, DistributorRole, RetailerRole, ConsumerRole 
 
   // Define a function 'receiveItem' that allows the retailer to mark an item 'Received'
   // Use the above modifiers to check if the item is shipped
-  function receiveItem(uint _upc) public 
+  function receiveItem(uint _upc) public payable
     // Call modifier to check that the caller is a RetailerRole
     onlyRetailer()
     // Call modifier to check if upc has been shipped
     isShipped(_upc)
     // Call modifer to check if retailer has paid enough
-    paidEnough(items[_upc].productPrice)
+    paidEnough(msg.value, items[_upc].productPrice)
     // Call modifer to send any excess ether back to buyer
-    checkValue(_upc)
+    checkValue(msg.value, _upc)
     // Access Control List enforced by calling Smart Contract / DApp
   {
     // The new owner is the retailer as they are the intermediary
@@ -318,7 +316,7 @@ contract SupplyChain is FarmerRole, DistributorRole, RetailerRole, ConsumerRole 
     items[_upc].retailerID = msg.sender;
 
     // Transfer money to distributor
-    address payable distributor_address = _make_address_payable(items[_upc].distributorID);
+    address payable distributor_address = payable(items[_upc].distributorID);
     distributor_address.transfer(items[_upc].productPrice);
     
     // Emit the appropriate event
@@ -327,15 +325,15 @@ contract SupplyChain is FarmerRole, DistributorRole, RetailerRole, ConsumerRole 
 
   // Define a function 'purchaseItem' that allows the consumer to mark an item 'Purchased'
   // Use the above modifiers to check if the item is received
-  function purchaseItem(uint _upc) public 
+  function purchaseItem(uint _upc) public payable
     // Call modifier to check that the caller is a ConsumerRole
     onlyConsumer()
     // Call modifier to check if upc has been received
     isReceived(_upc)
     // Call modifer to check if consumer has paid enough
-    paidEnough(items[_upc].productPrice)
+    paidEnough(msg.value, items[_upc].productPrice)
     // Call modifer to send any excess ether back to buyer
-    checkValue(_upc)
+    checkValue(msg.value, _upc)
     // Access Control List enforced by calling Smart Contract / DApp
   {
     // The new owner is the consumer as they are the final endpoint
@@ -345,7 +343,7 @@ contract SupplyChain is FarmerRole, DistributorRole, RetailerRole, ConsumerRole 
     items[_upc].consumerID = msg.sender;
     
     // Transfer money to the retailer
-    address payable retailer_address = _make_address_payable(items[_upc].retailerID);
+    address payable retailer_address = payable(items[_upc].retailerID);
     retailer_address.transfer(items[_upc].productPrice);
 
     // Emit the appropriate event

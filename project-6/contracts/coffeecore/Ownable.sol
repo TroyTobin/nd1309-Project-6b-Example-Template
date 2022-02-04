@@ -8,7 +8,10 @@ contract Ownable {
     event TransferOwnership(address indexed oldOwner, address indexed newOwner);
 
     /// Assign the contract to an owner
-    constructor () internal {
+    // Removed internal declaration due to this error
+    // DeclarationError: Non-abstract contracts cannot have internal constructors. 
+    // Remove the "internal" keyword and make the contract abstract to fix this.
+    constructor () {
         origOwner = msg.sender;
         emit TransferOwnership(address(0), origOwner);
     }
