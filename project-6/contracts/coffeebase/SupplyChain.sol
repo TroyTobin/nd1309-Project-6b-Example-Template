@@ -170,6 +170,8 @@ contract SupplyChain is FarmerRole, DistributorRole, RetailerRole, ConsumerRole 
                        string memory _originFarmLatitude,
                        string memory _originFarmLongitude,
                        string memory _productNotes) public 
+    // Call modifier to check that the caller is a farmer
+    onlyFarmer()
   {
     // Add the new item as part of Harvest
     Item memory i = Item(sku,
