@@ -42,7 +42,7 @@ contract('SupplyChain', function(accounts) {
     console.log("Retailer: accounts[3] ", accounts[3])
     console.log("Consumer: accounts[4] ", accounts[4])
 
-    // Test that only a famer can harvest
+    // Test that only a farmer can harvest
     it("Testing smart contract function harvestItem() can only be called by farmer", async() => {
         const supplyChain = await SupplyChain.deployed()
         supplyChain.addFarmer(originFarmerID);
