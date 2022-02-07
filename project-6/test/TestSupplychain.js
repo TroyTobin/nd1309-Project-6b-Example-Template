@@ -85,7 +85,8 @@ contract('SupplyChain', function(accounts) {
             eventEmitted = true
         })
 
-        // Mark an item as Harvested by calling function harvestItem()
+        // Test farmer roles 
+        // Expect success
         await supplyChain.harvestItem(upc, originFarmerID, originFarmName, originFarmInformation, originFarmLatitude, originFarmLongitude, productNotes, {from:originFarmerID})
 
         assert.equal(eventEmitted, true, 'Farmer was unable to harvest coffee')   
@@ -126,8 +127,49 @@ contract('SupplyChain', function(accounts) {
 
     // Test that only a farmer can processItem
     it("Testing smart contract function processItem() can only be called by farmer", async() => {
-        // Mark an item as Harvested by calling function harvestItem()
+        // Declare and Initialize a variable for event
+        var eventEmitted = false
+
+        // Harvest the coffee
+        await supplyChain.harvestItem(upc, originFarmerID, originFarmName, originFarmInformation, originFarmLatitude, originFarmLongitude, productNotes, {from:originFarmerID})
+
+        // Test all non-farmer roles 
+        // Expect Failure
         await truffleAssert.reverts(supplyChain.processItem(upc, {from:distributorID}))
+        await truffleAssert.reverts(supplyChain.processItem(upc, {from:retailerID}))
+        await truffleAssert.reverts(supplyChain.processItem(upc, {from:consumerID}))
+
+        // Test farmer role
+        // Watch the emitted event Processed()
+        await supplyChain.Processed((err, res) => {
+            eventEmitted = true
+        })
+
+        // Test farmer roles 
+        // Expect success
+        await supplyChain.processItem(upc, {from:originFarmerID})
+
+        assert.equal(eventEmitted, true, 'Farmer was unable to process item')   
+    })
+
+
+    // Test that the coffee must be "harvested" processItem
+    it("Testing smart contract function processItem() can only be called once coffee has been harvested", async() => {
+        var eventEmitted = false
+
+        // Calling processItem without the item being harvested should cause a "revert"
+        await truffleAssert.reverts(supplyChain.processItem(upc, {from:originFarmerID}))
+
+        // Watch the emitted event Processed()
+        await supplyChain.Processed((err, res) => {
+            eventEmitted = true
+        })
+
+        // Now harvest the item, before processing
+        await supplyChain.harvestItem(upc, originFarmerID, originFarmName, originFarmInformation, originFarmLatitude, originFarmLongitude, productNotes, {from:originFarmerID})
+        await supplyChain.processItem(upc, {from:originFarmerID})
+
+        assert.equal(eventEmitted, true, 'Farmer was unable to process harvested item')   
     })
 
 
