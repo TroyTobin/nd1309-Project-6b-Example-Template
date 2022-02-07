@@ -21,6 +21,7 @@ contract('SupplyChain', function(accounts) {
     const retailerID = accounts[3]
     const consumerID = accounts[4]
     const emptyAddress = '0x00000000000000000000000000000000000000'
+    var supplyChain = null
 
     ///Available Accounts
     ///==================
@@ -42,23 +43,58 @@ contract('SupplyChain', function(accounts) {
     console.log("Retailer: accounts[3] ", accounts[3])
     console.log("Consumer: accounts[4] ", accounts[4])
 
+    // Set up each of the roles
+    beforeEach(async() => {
+        // Deploy new contract to start fresh
+        supplyChain = await SupplyChain.new()
+
+        // Add all roles
+        supplyChain.addFarmer(originFarmerID);
+        supplyChain.addDistributor(distributorID);
+        supplyChain.addRetailer(retailerID);
+        supplyChain.addConsumer(consumerID);
+    });
+
+    // Tear down each of the roles
+    afterEach(async() => {
+        // Remove all roles
+        supplyChain.renounceFarmer({from:originFarmerID});
+        supplyChain.renounceDistributor({from:distributorID});
+        supplyChain.renounceRetailer({from:retailerID});
+        supplyChain.renounceConsumer({from:consumerID});
+
+        // Kill the contract
+        await supplyChain.kill()
+    });
+
     // Test that only a farmer can harvest
     it("Testing smart contract function harvestItem() can only be called by farmer", async() => {
-        const supplyChain = await SupplyChain.deployed()
-        supplyChain.addFarmer(originFarmerID);
-        
-        // Mark an item as Harvested by calling function harvestItem()
-        await truffleAssert.reverts(supplyChain.harvestItem(upc, originFarmerID, originFarmName, originFarmInformation, originFarmLatitude, originFarmLongitude, productNotes, {from:distributorID}))
 
-        supplyChain.renounceFarmer({from:originFarmerID});
+        // Declare and Initialize a variable for event
+        var eventEmitted = false
+
+        // Test all non-farmer roles 
+        // Expect Failure
+        await truffleAssert.reverts(supplyChain.harvestItem(upc, originFarmerID, originFarmName, originFarmInformation, originFarmLatitude, originFarmLongitude, productNotes, {from:distributorID}))
+        await truffleAssert.reverts(supplyChain.harvestItem(upc, originFarmerID, originFarmName, originFarmInformation, originFarmLatitude, originFarmLongitude, productNotes, {from:retailerID}))
+        await truffleAssert.reverts(supplyChain.harvestItem(upc, originFarmerID, originFarmName, originFarmInformation, originFarmLatitude, originFarmLongitude, productNotes, {from:consumerID}))
+
+        // Test farmer role
+        // Watch the emitted event Harvested()
+        await supplyChain.Harvested((err, res) => {
+            eventEmitted = true
+        })
+
+        // Mark an item as Harvested by calling function harvestItem()
+        await supplyChain.harvestItem(upc, originFarmerID, originFarmName, originFarmInformation, originFarmLatitude, originFarmLongitude, productNotes, {from:originFarmerID})
+
+        assert.equal(eventEmitted, true, 'Farmer was unable to harvest coffee')   
     })
 
 
     // Test successful harvest
     it("Testing smart contract function harvestItem() that allows a farmer to harvest coffee", async() => {
-        const supplyChain = await SupplyChain.deployed()
-        supplyChain.addFarmer(originFarmerID);
-        
+
         // Declare and Initialize a variable for event
         var eventEmitted = false
         
@@ -85,14 +121,18 @@ contract('SupplyChain', function(accounts) {
         assert.equal(resultBufferOne[7], originFarmLongitude, 'Error: Missing or Invalid originFarmLongitude')
         assert.equal(resultBufferTwo[5], 0, 'Error: Invalid item State')
         assert.equal(eventEmitted, true, 'Invalid event emitted')     
-        
-        supplyChain.renounceFarmer({from:originFarmerID});
     })
+
+
+    // Test that only a farmer can processItem
+    it("Testing smart contract function processItem() can only be called by farmer", async() => {
+        // Mark an item as Harvested by calling function harvestItem()
+        await truffleAssert.reverts(supplyChain.processItem(upc, {from:distributorID}))
+    })
+
 
     // 2nd Test
     it("Testing smart contract function processItem() that allows a farmer to process coffee", async() => {
-        const supplyChain = await SupplyChain.deployed()
-        
         // Declare and Initialize a variable for event
         
         
@@ -111,8 +151,6 @@ contract('SupplyChain', function(accounts) {
 
     // 3rd Test
     it("Testing smart contract function packItem() that allows a farmer to pack coffee", async() => {
-        const supplyChain = await SupplyChain.deployed()
-        
         // Declare and Initialize a variable for event
         
         
@@ -131,8 +169,6 @@ contract('SupplyChain', function(accounts) {
 
     // 4th Test
     it("Testing smart contract function sellItem() that allows a farmer to sell coffee", async() => {
-        const supplyChain = await SupplyChain.deployed()
-        
         // Declare and Initialize a variable for event
         
         
@@ -151,13 +187,13 @@ contract('SupplyChain', function(accounts) {
 
     // 5th Test
     it("Testing smart contract function buyItem() that allows a distributor to buy coffee", async() => {
-        const supplyChain = await SupplyChain.deployed()
-        
         // Declare and Initialize a variable for event
-        
+        let eventEmitted = false;
         
         // Watch the emitted event Sold()
-        var event = supplyChain.Sold()
+        await supplyChain.Sold((err, res) => {
+            eventEmitted = true;
+        })
         
 
         // Mark an item as Sold by calling function buyItem()
@@ -172,8 +208,6 @@ contract('SupplyChain', function(accounts) {
 
     // 6th Test
     it("Testing smart contract function shipItem() that allows a distributor to ship coffee", async() => {
-        const supplyChain = await SupplyChain.deployed()
-        
         // Declare and Initialize a variable for event
         
         
@@ -192,8 +226,6 @@ contract('SupplyChain', function(accounts) {
 
     // 7th Test
     it("Testing smart contract function receiveItem() that allows a retailer to mark coffee received", async() => {
-        const supplyChain = await SupplyChain.deployed()
-        
         // Declare and Initialize a variable for event
         
         
@@ -212,8 +244,6 @@ contract('SupplyChain', function(accounts) {
 
     // 8th Test
     it("Testing smart contract function purchaseItem() that allows a consumer to purchase coffee", async() => {
-        const supplyChain = await SupplyChain.deployed()
-        
         // Declare and Initialize a variable for event
         
         
@@ -232,8 +262,6 @@ contract('SupplyChain', function(accounts) {
 
     // 9th Test
     it("Testing smart contract function fetchItemBufferOne() that allows anyone to fetch item details from blockchain", async() => {
-        const supplyChain = await SupplyChain.deployed()
-
         // Retrieve the just now saved item from blockchain by calling function fetchItem()
         
         
@@ -243,8 +271,6 @@ contract('SupplyChain', function(accounts) {
 
     // 10th Test
     it("Testing smart contract function fetchItemBufferTwo() that allows anyone to fetch item details from blockchain", async() => {
-        const supplyChain = await SupplyChain.deployed()
-
         // Retrieve the just now saved item from blockchain by calling function fetchItem()
         
         
