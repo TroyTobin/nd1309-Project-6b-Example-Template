@@ -120,7 +120,7 @@ contract('SupplyChain', function(accounts) {
         assert.equal(resultBufferOne[5], originFarmInformation, 'Error: Missing or Invalid originFarmInformation')
         assert.equal(resultBufferOne[6], originFarmLatitude, 'Error: Missing or Invalid originFarmLatitude')
         assert.equal(resultBufferOne[7], originFarmLongitude, 'Error: Missing or Invalid originFarmLongitude')
-        assert.equal(resultBufferTwo[5], 0, 'Error: Invalid item State')
+        assert.equal(resultBufferTwo[5], SupplyChain.State.Harvested, 'Error: Invalid item State')
         assert.equal(eventEmitted, true, 'Invalid event emitted')     
     })
 
@@ -153,7 +153,7 @@ contract('SupplyChain', function(accounts) {
     })
 
 
-    // Test that the coffee must be "harvested" processItem
+    // Test that the coffee must be "harvested" to processItem
     it("Testing smart contract function processItem() can only be called once coffee has been harvested", async() => {
         var eventEmitted = false
 
@@ -175,21 +175,87 @@ contract('SupplyChain', function(accounts) {
 
     // 2nd Test
     it("Testing smart contract function processItem() that allows a farmer to process coffee", async() => {
-        // Declare and Initialize a variable for event
-        
+        var eventEmitted = false
         
         // Watch the emitted event Processed()
-        
+        await supplyChain.Processed((err, res) => {
+            eventEmitted = true
+        })
 
         // Mark an item as Processed by calling function processtItem()
+        await supplyChain.harvestItem(upc, originFarmerID, originFarmName, originFarmInformation, originFarmLatitude, originFarmLongitude, productNotes, {from:originFarmerID})
+        await supplyChain.processItem(upc, {from:originFarmerID})
         
-
         // Retrieve the just now saved item from blockchain by calling function fetchItem()
-        
+        const resultBufferOne = await supplyChain.fetchItemBufferOne.call(upc)
+        const resultBufferTwo = await supplyChain.fetchItemBufferTwo.call(upc)
 
         // Verify the result set
-        
+        assert.equal(resultBufferOne[0], sku, 'Error: Invalid item SKU')
+        assert.equal(resultBufferOne[1], upc, 'Error: Invalid item UPC')
+        assert.equal(resultBufferOne[2], originFarmerID, 'Error: Missing or Invalid ownerID')
+        assert.equal(resultBufferOne[3], originFarmerID, 'Error: Missing or Invalid originFarmerID')
+        assert.equal(resultBufferOne[4], originFarmName, 'Error: Missing or Invalid originFarmName')
+        assert.equal(resultBufferOne[5], originFarmInformation, 'Error: Missing or Invalid originFarmInformation')
+        assert.equal(resultBufferOne[6], originFarmLatitude, 'Error: Missing or Invalid originFarmLatitude')
+        assert.equal(resultBufferOne[7], originFarmLongitude, 'Error: Missing or Invalid originFarmLongitude')
+        assert.equal(resultBufferTwo[5], SupplyChain.State.Processed, 'Error: Invalid item State')
+        assert.equal(eventEmitted, true, 'Invalid event emitted') 
     })    
+
+    // Test that only a farmer can packItem
+    it("Testing smart contract function packItem() can only be called by farmer", async() => {
+        // Declare and Initialize a variable for event
+        var eventEmitted = false
+
+        // Harvest and process the coffee so it is in the correct state
+        await supplyChain.harvestItem(upc, originFarmerID, originFarmName, originFarmInformation, originFarmLatitude, originFarmLongitude, productNotes, {from:originFarmerID})
+        await supplyChain.processItem(upc, {from:originFarmerID})
+
+        // Test all non-farmer roles 
+        // Expect Failure
+        await truffleAssert.reverts(supplyChain.packItem(upc, {from:distributorID}))
+        await truffleAssert.reverts(supplyChain.packItem(upc, {from:retailerID}))
+        await truffleAssert.reverts(supplyChain.packItem(upc, {from:consumerID}))
+
+        // Test farmer role
+        // Watch the emitted event Packed()
+        await supplyChain.Packed((err, res) => {
+            eventEmitted = true
+        })
+
+        // Test farmer roles 
+        // Expect success
+        await supplyChain.packItem(upc, {from:originFarmerID})
+
+        assert.equal(eventEmitted, true, 'Farmer was unable to pack item')   
+    })
+
+
+    // Test that the coffee must be "processed" to packItem
+    it("Testing smart contract function packItem() can only be called once coffee has been processed", async() => {
+        var eventEmitted = false
+
+        // -------------------------------------------------------------------------
+        // Calling packItem without the item being processed should cause a "revert"
+        // No state
+        await truffleAssert.reverts(supplyChain.packItem(upc, {from:originFarmerID}))
+
+        // Harvested
+        await supplyChain.harvestItem(upc, originFarmerID, originFarmName, originFarmInformation, originFarmLatitude, originFarmLongitude, productNotes, {from:originFarmerID})
+        await truffleAssert.reverts(supplyChain.packItem(upc, {from:originFarmerID}))
+
+        // Watch the emitted event Packed();
+        await supplyChain.Packed((err, res) => {
+            eventEmitted = true
+        })
+
+        // Now process the item, before packing
+        await supplyChain.processItem(upc, {from:originFarmerID})
+
+        assert.equal(eventEmitted, true, 'Farmer was unable to process pack item')   
+    })
+
 
     // 3rd Test
     it("Testing smart contract function packItem() that allows a farmer to pack coffee", async() => {
