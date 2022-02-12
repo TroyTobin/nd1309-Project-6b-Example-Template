@@ -320,6 +320,9 @@ contract SupplyChain is FarmerRole, DistributorRole, RetailerRole, ConsumerRole 
     // Transfer money to distributor
     address payable distributor_address = payable(items[_upc].distributorID);
     distributor_address.transfer(items[_upc].productPrice);
+
+    // Item is now received
+    items[_upc].itemState = State.Received;
     
     // Emit the appropriate event
     emit Received(_upc);
@@ -347,6 +350,9 @@ contract SupplyChain is FarmerRole, DistributorRole, RetailerRole, ConsumerRole 
     // Transfer money to the retailer
     address payable retailer_address = payable(items[_upc].retailerID);
     retailer_address.transfer(items[_upc].productPrice);
+
+    // Item is now purchased
+    items[_upc].itemState = State.Purchased;
 
     // Emit the appropriate event
     emit Purchased(_upc);

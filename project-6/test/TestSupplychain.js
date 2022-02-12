@@ -45,6 +45,7 @@ contract('SupplyChain', function(accounts) {
 
     // Set up each of the roles
     beforeEach(async() => {
+
         // Deploy new contract to start fresh
         supplyChain = await SupplyChain.new()
 
@@ -53,6 +54,7 @@ contract('SupplyChain', function(accounts) {
         supplyChain.addDistributor(distributorID);
         supplyChain.addRetailer(retailerID);
         supplyChain.addConsumer(consumerID);
+
     });
 
     // Tear down each of the roles
@@ -67,45 +69,54 @@ contract('SupplyChain', function(accounts) {
         await supplyChain.kill()
     });
 
+    // Helper function to test the states after calling contract functions
+    const checkEvent =  async function(eventName, expectedValue, failureMessage) {
+        let eventEmitted = false
+
+        // Get the event that just occured (may not be one)
+        await supplyChain.getPastEvents(eventName).then(function(events){
+            if ((events.length == 1) && 
+                (events[0].event == eventName))
+            {
+                eventEmitted = true
+            }
+        });
+
+        assert.equal(eventEmitted, expectedValue, failureMessage)
+    }
+
     // Test that only a farmer can harvest
     it("Testing smart contract function harvestItem() can only be called by farmer", async() => {
 
-        // Declare and Initialize a variable for event
-        var eventEmitted = false
+        // --------------------------------------------------------------------
+        // Test all non-farmer roles - Expect Failure
 
-        // Test all non-farmer roles 
-        // Expect Failure
+        // Check that distributor can't harvest item
         await truffleAssert.reverts(supplyChain.harvestItem(upc, originFarmerID, originFarmName, originFarmInformation, originFarmLatitude, originFarmLongitude, productNotes, {from:distributorID}))
+        checkEvent('Harvested', false, 'Non-Farmer (Distributor) was able to harvest coffee')
+
+        // Check that retailer can't harvest item
         await truffleAssert.reverts(supplyChain.harvestItem(upc, originFarmerID, originFarmName, originFarmInformation, originFarmLatitude, originFarmLongitude, productNotes, {from:retailerID}))
+        checkEvent('Harvested', false, 'Non-Farmer (Retailer) was able to harvest coffee')
+        
+        // Check that consumer can't harvest item
         await truffleAssert.reverts(supplyChain.harvestItem(upc, originFarmerID, originFarmName, originFarmInformation, originFarmLatitude, originFarmLongitude, productNotes, {from:consumerID}))
+        checkEvent('Harvested', false, 'Non-Farmer (Consumer) was able to harvest coffee')
 
+        // --------------------------------------------------------------------
         // Test farmer role
-        // Watch the emitted event Harvested()
-        await supplyChain.Harvested((err, res) => {
-            eventEmitted = true
-        })
-
-        // Test farmer roles 
-        // Expect success
         await supplyChain.harvestItem(upc, originFarmerID, originFarmName, originFarmInformation, originFarmLatitude, originFarmLongitude, productNotes, {from:originFarmerID})
 
-        assert.equal(eventEmitted, true, 'Farmer was unable to harvest coffee')   
+        // Check that the Harvested event was triggered
+        checkEvent('Harvested', true, 'Farmer was unable to harvest coffee')
     })
-
 
     // Test successful harvest
     it("Testing smart contract function harvestItem() that allows a farmer to harvest coffee", async() => {
-
-        // Declare and Initialize a variable for event
-        var eventEmitted = false
         
-        // Watch the emitted event Harvested()
-        await supplyChain.Harvested((err, res) => {
-            eventEmitted = true
-        })
-
         // Mark an item as Harvested by calling function harvestItem()
         await supplyChain.harvestItem(upc, originFarmerID, originFarmName, originFarmInformation, originFarmLatitude, originFarmLongitude, productNotes, {from:originFarmerID})
+        checkEvent('Harvested', true, 'Farmer was unable to harvest coffee')
 
         // Retrieve the just now saved item from blockchain by calling function fetchItem()
         const resultBufferOne = await supplyChain.fetchItemBufferOne.call(upc)
@@ -121,70 +132,60 @@ contract('SupplyChain', function(accounts) {
         assert.equal(resultBufferOne[6], originFarmLatitude, 'Error: Missing or Invalid originFarmLatitude')
         assert.equal(resultBufferOne[7], originFarmLongitude, 'Error: Missing or Invalid originFarmLongitude')
         assert.equal(resultBufferTwo[5], SupplyChain.State.Harvested, 'Error: Invalid item State')
-        assert.equal(eventEmitted, true, 'Invalid event emitted')     
     })
-
 
     // Test that only a farmer can processItem
     it("Testing smart contract function processItem() can only be called by farmer", async() => {
-        // Declare and Initialize a variable for event
-        var eventEmitted = false
-
-        // Harvest the coffee
+        // Harvest the coffee so it is in the correct state
         await supplyChain.harvestItem(upc, originFarmerID, originFarmName, originFarmInformation, originFarmLatitude, originFarmLongitude, productNotes, {from:originFarmerID})
 
-        // Test all non-farmer roles 
-        // Expect Failure
+        // --------------------------------------------------------------------
+        // Test all non-farmer roles - Expect Failure
+
+        // Check that distributor can't process item
         await truffleAssert.reverts(supplyChain.processItem(upc, {from:distributorID}))
+        checkEvent('Processed', false, 'Non-Farmer (Distributor) was able to process coffee')
+
+        // Check that retailer can't process item
         await truffleAssert.reverts(supplyChain.processItem(upc, {from:retailerID}))
+        checkEvent('Processed', false, 'Non-Farmer (retailer) was able to process coffee')
+
+        // Check that consumer can't process item
         await truffleAssert.reverts(supplyChain.processItem(upc, {from:consumerID}))
+        checkEvent('Processed', false, 'Non-Farmer (Consumer) was able to process coffee')
 
+
+        // --------------------------------------------------------------------
         // Test farmer role
-        // Watch the emitted event Processed()
-        await supplyChain.Processed((err, res) => {
-            eventEmitted = true
-        })
-
-        // Test farmer roles 
-        // Expect success
         await supplyChain.processItem(upc, {from:originFarmerID})
-
-        assert.equal(eventEmitted, true, 'Farmer was unable to process item')   
+        checkEvent('Processed', true, 'Farmer was unable to process item')
     })
 
 
     // Test that the coffee must be "harvested" to processItem
     it("Testing smart contract function processItem() can only be called once coffee has been harvested", async() => {
-        var eventEmitted = false
 
+        // --------------------------------------------------------------------
         // Calling processItem without the item being harvested should cause a "revert"
         await truffleAssert.reverts(supplyChain.processItem(upc, {from:originFarmerID}))
+        checkEvent('Processed', false, 'Farmer was able to process item before being harvested')
 
-        // Watch the emitted event Processed()
-        await supplyChain.Processed((err, res) => {
-            eventEmitted = true
-        })
 
+        // --------------------------------------------------------------------
         // Now harvest the item, before processing
         await supplyChain.harvestItem(upc, originFarmerID, originFarmName, originFarmInformation, originFarmLatitude, originFarmLongitude, productNotes, {from:originFarmerID})
         await supplyChain.processItem(upc, {from:originFarmerID})
+        checkEvent('Processed', true, 'Farmer was unable to process harvested item')
 
-        assert.equal(eventEmitted, true, 'Farmer was unable to process harvested item')   
     })
 
-
-    // 2nd Test
+    // Test successful processItem
     it("Testing smart contract function processItem() that allows a farmer to process coffee", async() => {
-        var eventEmitted = false
-        
-        // Watch the emitted event Processed()
-        await supplyChain.Processed((err, res) => {
-            eventEmitted = true
-        })
 
         // Mark an item as Processed by calling function processtItem()
         await supplyChain.harvestItem(upc, originFarmerID, originFarmName, originFarmInformation, originFarmLatitude, originFarmLongitude, productNotes, {from:originFarmerID})
         await supplyChain.processItem(upc, {from:originFarmerID})
+        checkEvent('Processed', true, 'Farmer was unable to process harvested item')
         
         // Retrieve the just now saved item from blockchain by calling function fetchItem()
         const resultBufferOne = await supplyChain.fetchItemBufferOne.call(upc)
@@ -200,42 +201,39 @@ contract('SupplyChain', function(accounts) {
         assert.equal(resultBufferOne[6], originFarmLatitude, 'Error: Missing or Invalid originFarmLatitude')
         assert.equal(resultBufferOne[7], originFarmLongitude, 'Error: Missing or Invalid originFarmLongitude')
         assert.equal(resultBufferTwo[5], SupplyChain.State.Processed, 'Error: Invalid item State')
-        assert.equal(eventEmitted, true, 'Invalid event emitted') 
     })    
 
     // Test that only a farmer can packItem
     it("Testing smart contract function packItem() can only be called by farmer", async() => {
-        // Declare and Initialize a variable for event
-        var eventEmitted = false
-
         // Harvest and process the coffee so it is in the correct state
         await supplyChain.harvestItem(upc, originFarmerID, originFarmName, originFarmInformation, originFarmLatitude, originFarmLongitude, productNotes, {from:originFarmerID})
         await supplyChain.processItem(upc, {from:originFarmerID})
 
-        // Test all non-farmer roles 
-        // Expect Failure
+        // --------------------------------------------------------------------
+        // Test all non-farmer roles - Expect Failure        
+        
+        // Check that distributor can't pack item
         await truffleAssert.reverts(supplyChain.packItem(upc, {from:distributorID}))
+        checkEvent('Packed', false, 'Non-Farmer (Distributor) was able to pack coffee')
+
+        // Check that retailer can't pack item
         await truffleAssert.reverts(supplyChain.packItem(upc, {from:retailerID}))
+        checkEvent('Packed', false, 'Non-Farmer (Retailer) was able to pack coffee')
+
+        // Check that consumer can't pack item
         await truffleAssert.reverts(supplyChain.packItem(upc, {from:consumerID}))
+        checkEvent('Packed', false, 'Non-Farmer (Consumer) was able to pack coffee')
 
+
+        // --------------------------------------------------------------------
         // Test farmer role
-        // Watch the emitted event Packed()
-        await supplyChain.Packed((err, res) => {
-            eventEmitted = true
-        })
-
-        // Test farmer roles 
-        // Expect success
         await supplyChain.packItem(upc, {from:originFarmerID})
-
-        assert.equal(eventEmitted, true, 'Farmer was unable to pack item')   
+        checkEvent('Packed', true, 'Farmer was unable to pack item')
     })
 
 
     // Test that the coffee must be "processed" to packItem
     it("Testing smart contract function packItem() can only be called once coffee has been processed", async() => {
-        var eventEmitted = false
-
         // -------------------------------------------------------------------------
         // Calling packItem without the item being processed should cause a "revert"
         // No state
@@ -245,35 +243,71 @@ contract('SupplyChain', function(accounts) {
         await supplyChain.harvestItem(upc, originFarmerID, originFarmName, originFarmInformation, originFarmLatitude, originFarmLongitude, productNotes, {from:originFarmerID})
         await truffleAssert.reverts(supplyChain.packItem(upc, {from:originFarmerID}))
 
-        // Watch the emitted event Packed();
-        await supplyChain.Packed((err, res) => {
-            eventEmitted = true
-        })
 
         // Now process the item, before packing
         await supplyChain.processItem(upc, {from:originFarmerID})
-
-        assert.equal(eventEmitted, true, 'Farmer was unable to process pack item')   
+        await supplyChain.packItem(upc, {from:originFarmerID})
+        checkEvent('Packed', true, 'Farmer was unable to pack item')
     })
 
 
-    // 3rd Test
+    // Test successful packItem
     it("Testing smart contract function packItem() that allows a farmer to pack coffee", async() => {
-        // Declare and Initialize a variable for event
-        
-        
-        // Watch the emitted event Packed()
-        
-
         // Mark an item as Packed by calling function packItem()
+        await supplyChain.harvestItem(upc, originFarmerID, originFarmName, originFarmInformation, originFarmLatitude, originFarmLongitude, productNotes, {from:originFarmerID})
+        await supplyChain.processItem(upc, {from:originFarmerID})
+        await supplyChain.packItem(upc, {from:originFarmerID})
+        checkEvent('Packed', true, 'Farmer was unable to process harvested item')
         
-
         // Retrieve the just now saved item from blockchain by calling function fetchItem()
-        
+        const resultBufferOne = await supplyChain.fetchItemBufferOne.call(upc)
+        const resultBufferTwo = await supplyChain.fetchItemBufferTwo.call(upc)
 
         // Verify the result set
-        
+        assert.equal(resultBufferOne[0], sku, 'Error: Invalid item SKU')
+        assert.equal(resultBufferOne[1], upc, 'Error: Invalid item UPC')
+        assert.equal(resultBufferOne[2], originFarmerID, 'Error: Missing or Invalid ownerID')
+        assert.equal(resultBufferOne[3], originFarmerID, 'Error: Missing or Invalid originFarmerID')
+        assert.equal(resultBufferOne[4], originFarmName, 'Error: Missing or Invalid originFarmName')
+        assert.equal(resultBufferOne[5], originFarmInformation, 'Error: Missing or Invalid originFarmInformation')
+        assert.equal(resultBufferOne[6], originFarmLatitude, 'Error: Missing or Invalid originFarmLatitude')
+        assert.equal(resultBufferOne[7], originFarmLongitude, 'Error: Missing or Invalid originFarmLongitude')
+        assert.equal(resultBufferTwo[5], SupplyChain.State.Packed, 'Error: Invalid item State')
     })    
+
+
+      
+    // Test that only a farmer can sellItem
+    it("Testing smart contract function sellItem() can only be called by farmer", async() => {
+        // Harvest, process and pack the coffee so it is in the correct state
+        await supplyChain.harvestItem(upc, originFarmerID, originFarmName, originFarmInformation, originFarmLatitude, originFarmLongitude, productNotes, {from:originFarmerID})
+        await supplyChain.processItem(upc, {from:originFarmerID})
+        await supplyChain.packItem(upc, {from:originFarmerID})
+
+        let price = 1000
+
+        // --------------------------------------------------------------------
+        // Test all non-farmer roles - Expect Failure        
+        
+        // Check that distributor can't sell item
+        await truffleAssert.reverts(supplyChain.sellItem(upc, price, {from:distributorID}))
+        checkEvent('ForSale', false, 'Non-Farmer (Distributor) was able to sell coffee')
+
+        // Check that retailer can't sell item
+        await truffleAssert.reverts(supplyChain.sellItem(upc, price, {from:retailerID}))
+        checkEvent('ForSale', false, 'Non-Farmer (Retailer) was able to sell coffee')
+
+        // Check that consumer can't sell item
+        await truffleAssert.reverts(supplyChain.sellItem(upc, price, {from:consumerID}))
+        checkEvent('ForSale', false, 'Non-Farmer (Consumer) was able to sell coffee')
+
+
+        // --------------------------------------------------------------------
+        // Test farmer role
+        await supplyChain.sellItem(upc, price, {from:originFarmerID})
+        checkEvent('ForSale', true, 'Farmer was unable to sell item')
+    })
+
 
     // 4th Test
     it("Testing smart contract function sellItem() that allows a farmer to sell coffee", async() => {
@@ -292,6 +326,42 @@ contract('SupplyChain', function(accounts) {
         // Verify the result set
           
     })    
+
+
+    // Test that only a distributor can buyItem
+    it("Testing smart contract function buyItem() can only be called by distributor", async() => {
+
+        let price = 1000
+
+        // Harvest, process, pack and sell the coffee so it is in the correct state
+        await supplyChain.harvestItem(upc, originFarmerID, originFarmName, originFarmInformation, originFarmLatitude, originFarmLongitude, productNotes, {from:originFarmerID})
+        await supplyChain.processItem(upc, {from:originFarmerID})
+        await supplyChain.packItem(upc, {from:originFarmerID})
+        await supplyChain.sellItem(upc, price, {from:originFarmerID})
+
+        // --------------------------------------------------------------------
+        // Test all non-distributor roles - Expect Failure        
+        
+        // Check that farmer can't buy item
+        await truffleAssert.reverts(supplyChain.buyItem(upc, {from:originFarmerID, value:price}))
+        checkEvent('Sold', false, 'Non-Distributor (Farmer) was able to buy coffee')
+
+        // Check that retailer can't buy item
+        await truffleAssert.reverts(supplyChain.buyItem(upc, {from:retailerID, value:price}))
+        checkEvent('Sold', false, 'Non-Distributor (Retailer) was able to buy coffee')
+
+        // Check that consumer can't buy item
+        await truffleAssert.reverts(supplyChain.buyItem(upc, {from:consumerID, value:price}))
+        checkEvent('Sold', false, 'Non-Distributor (Consumer) was able to buy coffee')
+
+
+        // --------------------------------------------------------------------
+        // Test distributor role
+        await supplyChain.buyItem(upc, {from:distributorID, value:price})
+        checkEvent('Sold', true, 'Distributor was unable to buy item')
+    })
+
+
 
     // 5th Test
     it("Testing smart contract function buyItem() that allows a distributor to buy coffee", async() => {
@@ -314,6 +384,42 @@ contract('SupplyChain', function(accounts) {
         
     })    
 
+
+
+    // Test that only a distributor can shipItem
+    it("Testing smart contract function shipItem() can only be called by distributor", async() => {
+        
+        let price = 1000
+
+        // Harvest, process, pack, sell and buy the coffee so it is in the correct state
+        await supplyChain.harvestItem(upc, originFarmerID, originFarmName, originFarmInformation, originFarmLatitude, originFarmLongitude, productNotes, {from:originFarmerID})
+        await supplyChain.processItem(upc, {from:originFarmerID})
+        await supplyChain.packItem(upc, {from:originFarmerID})
+        await supplyChain.sellItem(upc, price, {from:originFarmerID})
+        await supplyChain.buyItem(upc, {from:distributorID, value:price})
+
+        // --------------------------------------------------------------------
+        // Test all non-distributor roles - Expect Failure        
+        
+        // Check that farmer can't buy item
+        await truffleAssert.reverts(supplyChain.shipItem(upc, {from:originFarmerID}))
+        checkEvent('Shipped', false, 'Non-Distributor (Farmer) was able to ship coffee')
+
+        // Check that retailer can't buy item
+        await truffleAssert.reverts(supplyChain.shipItem(upc, {from:retailerID}))
+        checkEvent('Shipped', false, 'Non-Distributor (Retailer) was able to ship coffee')
+
+        // Check that consumer can't buy item
+        await truffleAssert.reverts(supplyChain.shipItem(upc, {from:consumerID}))
+        checkEvent('Shipped', false, 'Non-Distributor (Consumer) was able to ship coffee')
+
+
+        // --------------------------------------------------------------------
+        // Test distributor role
+        await supplyChain.shipItem(upc, {from:distributorID})
+        checkEvent('Shipped', true, 'Distributor was unable to ship item')
+    })
+
     // 6th Test
     it("Testing smart contract function shipItem() that allows a distributor to ship coffee", async() => {
         // Declare and Initialize a variable for event
@@ -332,6 +438,43 @@ contract('SupplyChain', function(accounts) {
               
     })    
 
+
+    // Test that only a retailer can receiveItem
+    it("Testing smart contract function receiveItem() can only be called by retailer", async() => {
+
+        let price = 1000
+
+        // Harvest, process, pack, sell, buy and ship the coffee so it is in the correct state
+        await supplyChain.harvestItem(upc, originFarmerID, originFarmName, originFarmInformation, originFarmLatitude, originFarmLongitude, productNotes, {from:originFarmerID})
+        await supplyChain.processItem(upc, {from:originFarmerID})
+        await supplyChain.packItem(upc, {from:originFarmerID})
+        await supplyChain.sellItem(upc, price, {from:originFarmerID})
+        await supplyChain.buyItem(upc, {from:distributorID, value:price})
+        await supplyChain.shipItem(upc, {from:distributorID})
+
+        // --------------------------------------------------------------------
+        // Test all non-retailer roles - Expect Failure        
+        
+        // Check that farmer can't buy item
+        await truffleAssert.reverts(supplyChain.receiveItem(upc, {from:originFarmerID, value:price}))
+        checkEvent('Received', false, 'Non-Retailer (Farmer) was able to receive coffee')
+
+        // Check that distributor can't buy item
+        await truffleAssert.reverts(supplyChain.receiveItem(upc, {from:distributorID, value:price}))
+        checkEvent('Received', false, 'Non-Retailer (Distributor) was able to receive coffee')
+
+        // Check that consumer can't buy item
+        await truffleAssert.reverts(supplyChain.receiveItem(upc, {from:consumerID, value:price}))
+        checkEvent('Received', false, 'Non-Retailer (Consumer) was able to receive coffee')
+
+
+        // --------------------------------------------------------------------
+        // Test retailer role
+        await supplyChain.receiveItem(upc, {from:retailerID, value:price})
+        checkEvent('Received', true, 'Retailer was unable to receive item')
+    })
+
+
     // 7th Test
     it("Testing smart contract function receiveItem() that allows a retailer to mark coffee received", async() => {
         // Declare and Initialize a variable for event
@@ -349,6 +492,44 @@ contract('SupplyChain', function(accounts) {
         // Verify the result set
              
     })    
+
+     
+    // Test that only a consumer can purchaseItem
+    it("Testing smart contract function purchaseItem() can only be called by consumer", async() => {
+
+        let price = 1000
+
+        // Harvest, process, pack, sell, buy, ship and receive the coffee so it is in the correct state
+        await supplyChain.harvestItem(upc, originFarmerID, originFarmName, originFarmInformation, originFarmLatitude, originFarmLongitude, productNotes, {from:originFarmerID})
+        await supplyChain.processItem(upc, {from:originFarmerID})
+        await supplyChain.packItem(upc, {from:originFarmerID})
+        await supplyChain.sellItem(upc, price, {from:originFarmerID})
+        await supplyChain.buyItem(upc, {from:distributorID, value:price})
+        await supplyChain.shipItem(upc, {from:distributorID})
+        await supplyChain.receiveItem(upc, {from:retailerID, value:price})
+
+        // --------------------------------------------------------------------
+        // Test all non-consumer roles - Expect Failure        
+        
+        // Check that farmer can't purchase item
+        await truffleAssert.reverts(supplyChain.purchaseItem(upc, {from:originFarmerID, value:price}))
+        checkEvent('Purchased', false, 'Non-Consumer (Farmer) was able to purchase coffee')
+
+        // Check that distributor can't purchase item
+        await truffleAssert.reverts(supplyChain.purchaseItem(upc, {from:distributorID, value:price}))
+        checkEvent('Purchased', false, 'Non-Consumer (Distributor) was able to purchase coffee')
+
+        // Check that retailer can't purchase item
+        await truffleAssert.reverts(supplyChain.purchaseItem(upc, {from:retailerID, value:price}))
+        checkEvent('Purchased', false, 'Non-Consumer (Retailer) was able to purchase coffee')
+
+
+        // --------------------------------------------------------------------
+        // Test consumer role
+        await supplyChain.purchaseItem(upc, {from:consumerID, value:price})
+        checkEvent('Purchased', true, 'Consumer was unable to purchase item')
+    })
+
 
     // 8th Test
     it("Testing smart contract function purchaseItem() that allows a consumer to purchase coffee", async() => {
