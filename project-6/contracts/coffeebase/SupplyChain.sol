@@ -245,6 +245,7 @@ contract SupplyChain is FarmerRole, DistributorRole, RetailerRole, ConsumerRole 
 
     // Set the sale price
     items[_upc].productPrice = _price;
+
     
     // Emit the 'for sale' event
     emit ForSale(_upc);
@@ -410,6 +411,7 @@ contract SupplyChain is FarmerRole, DistributorRole, RetailerRole, ConsumerRole 
     itemUPC       = items[_upc].upc;
     productID     = items[_upc].productID;
     productNotes  = items[_upc].productNotes;
+    productPrice  = items[_upc].productPrice;
     itemState     = uint(items[_upc].itemState);
     distributorID = items[_upc].distributorID;
     retailerID    = items[_upc].retailerID;
