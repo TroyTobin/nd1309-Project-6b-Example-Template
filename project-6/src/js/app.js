@@ -74,7 +74,7 @@ App = {
         }
         // If no injected web3 instance is detected, fall back to Ganache
         else {
-            App.web3Provider = new Web3.providers.HttpProvider('http://localhost:7545');
+            App.web3Provider = new Web3.providers.HttpProvider('http://localhost:8545');
         }
 
         App.getMetaskAccountID();
@@ -175,8 +175,7 @@ App = {
                 App.originFarmInformation, 
                 App.originFarmLatitude, 
                 App.originFarmLongitude, 
-                App.productNotes
-            );
+                App.productNotes, {from: App.metamaskAccountID});
         }).then(function(result) {
             $("#ftc-item").text(result);
             console.log('harvestItem',result);
@@ -218,9 +217,8 @@ App = {
         var processId = parseInt($(event.target).data('id'));
 
         App.contracts.SupplyChain.deployed().then(function(instance) {
-            const productPrice = web3.toWei(1, "ether");
-            console.log('productPrice',productPrice);
-            return instance.sellItem(App.upc, App.productPrice, {from: App.metamaskAccountID});
+            const productPrice = web3.utils.toWei(App.productPrice, "ether");
+            return instance.sellItem(App.upc, productPrice, {from: App.metamaskAccountID});
         }).then(function(result) {
             $("#ftc-item").text(result);
             console.log('sellItem',result);
@@ -234,7 +232,7 @@ App = {
         var processId = parseInt($(event.target).data('id'));
 
         App.contracts.SupplyChain.deployed().then(function(instance) {
-            const walletValue = web3.toWei(3, "ether");
+            const walletValue = web3.utils.toWei(App.productPrice, "ether");
             return instance.buyItem(App.upc, {from: App.metamaskAccountID, value: walletValue});
         }).then(function(result) {
             $("#ftc-item").text(result);
@@ -263,7 +261,8 @@ App = {
         var processId = parseInt($(event.target).data('id'));
 
         App.contracts.SupplyChain.deployed().then(function(instance) {
-            return instance.receiveItem(App.upc, {from: App.metamaskAccountID});
+            const walletValue = web3.utils.toWei(App.productPrice, "ether");
+            return instance.receiveItem(App.upc, {from: App.metamaskAccountID, value: walletValue});
         }).then(function(result) {
             $("#ftc-item").text(result);
             console.log('receiveItem',result);
@@ -277,7 +276,8 @@ App = {
         var processId = parseInt($(event.target).data('id'));
 
         App.contracts.SupplyChain.deployed().then(function(instance) {
-            return instance.purchaseItem(App.upc, {from: App.metamaskAccountID});
+            const walletValue = web3.utils.toWei(App.productPrice, "ether");
+            return instance.purchaseItem(App.upc, {from: App.metamaskAccountID, value: walletValue});
         }).then(function(result) {
             $("#ftc-item").text(result);
             console.log('purchaseItem',result);
@@ -287,30 +287,62 @@ App = {
     },
 
     fetchItemBufferOne: function () {
-    ///   event.preventDefault();
-    ///    var processId = parseInt($(event.target).data('id'));
         App.upc = $('#upc').val();
         console.log('upc',App.upc);
 
         App.contracts.SupplyChain.deployed().then(function(instance) {
           return instance.fetchItemBufferOne(App.upc);
         }).then(function(result) {
-          $("#ftc-item").text(result);
-          console.log('fetchItemBufferOne', result);
+          $("#sku").val(result['itemSKU']);
+          $("#ownerID").val(result['ownerID']);
+          $("#originFarmerID").val(result['originFarmerID']);
+          $("#originFarmName").val(result['originFarmName']);
+          $("#originFarmInformation").val(result['originFarmInformation']);
+          $("#originFarmLatitude").val(result['originFarmLatitude']);
+          $("#originFarmLongitude").val(result['originFarmLongitude']);
         }).catch(function(err) {
           console.log(err.message);
         });
     },
 
     fetchItemBufferTwo: function () {
-    ///    event.preventDefault();
-    ///    var processId = parseInt($(event.target).data('id'));
-                        
         App.contracts.SupplyChain.deployed().then(function(instance) {
           return instance.fetchItemBufferTwo.call(App.upc);
         }).then(function(result) {
-          $("#ftc-item").text(result);
-          console.log('fetchItemBufferTwo', result);
+          $("#sku").val(result['itemSKU']);
+          $("#productNotes").val(result['productNotes']);
+          $("#productPrice").val(result['productPrice']);
+          $("#distributorID").val(result['distributorID']);
+          $("#retailerID").val(result['retailerID']);
+          $("#consumerID").val(result['consumerID']);
+
+          console.log(result);
+          switch(web3.utils.toBN(result['itemState']).toString()) {
+            case "0":
+                $("#productState").val("Harvested");
+                break;
+            case "1":
+                $("#productState").val("Processed");
+                break;
+            case "2":
+                $("#productState").val("Packed");
+                break;
+            case "3":
+                $("#productState").val("ForSale");
+                break;
+            case "4":
+                $("#productState").val("Sold");
+                break;
+            case "5":
+                $("#productState").val("Shipped");
+                break;
+            case "6":
+                $("#productState").val("Received");
+                break;
+            case "7":
+                $("#productState").val("Purchased");
+                break;
+          }
         }).catch(function(err) {
           console.log(err.message);
         });

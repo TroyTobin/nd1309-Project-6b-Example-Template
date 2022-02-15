@@ -66,7 +66,7 @@
             <input type="text" id="productNotes" name="productNotes" value="Best beans for Espresso" size="60"><br>
             Product Price
             <br>
-            <input type="number" id="productPrice" name="productPrice" value=1>ETH<br>
+            <input type="number" id="productPrice" name="productPrice" value=1>Wei<br>
             Distributor ID
             <br>
             <input type="text" id="distributorID" name="distributorID" value="0xf1b1bcd24dad92303dd9fe78be639f7bcf9c238d"
@@ -87,6 +87,12 @@
             <button class="btn-purchase" id="button" type="button" data-id="8">Purchase</button>
         </div>
         <div class=form-break></div>
+        <h2>Product State</h2>
+        <div class="form-group">
+            Current State
+            <br>
+            <input type="text" id="productState" name="productState" value="UNKNOWN" size="60"><br>
+        </div>
         <hr>
     </div>
 
@@ -100,8 +106,8 @@
     </div>
 
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
-    <!-- <script src="js/web3.min.js"></script> -->
-    <script src="js/truffle-contract.js"></script>
+    <script type="text/javascript" src="./node_modules/@truffle/contract/node_modules/web3/dist/web3.min.js"></script>
+    <script type="text/javascript" src="./node_modules/@truffle/contract/dist/truffle-contract.min.js"></script>
     <script src="js/app.js"></script>
 </body>
 
