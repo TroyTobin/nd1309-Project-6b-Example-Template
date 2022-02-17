@@ -34,7 +34,7 @@ Compiling your contracts...
 Starting migrations...
 ======================
 > Network name:    'development'
-> Network id:      1644933879996
+> Network id:      1645096501180
 > Block gas limit: 6721975 (0x6691b7)
 
 
@@ -47,7 +47,7 @@ Starting migrations...
    > Blocks: 0            Seconds: 0
    > contract address:    0xFEeCfF2CB7d6f3BfcBE5fa41c49c8fB642f2dDbF
    > block number:        1
-   > block timestamp:     1644933888
+   > block timestamp:     1645096507
    > account:             0x27D8D15CbC94527cAdf5eC14B69519aE23288B95
    > balance:             99.99549526
    > gas used:            225237 (0x36fd5)
@@ -71,7 +71,7 @@ Starting migrations...
    > Blocks: 0            Seconds: 0
    > contract address:    0xf2ee0b0Cdcae5013930B92c0Ba54F7F7f1933613
    > block number:        3
-   > block timestamp:     1644933888
+   > block timestamp:     1645096507
    > account:             0x27D8D15CbC94527cAdf5eC14B69519aE23288B95
    > balance:             99.98803348
    > gas used:            330726 (0x50be6)
@@ -86,7 +86,7 @@ Starting migrations...
    > Blocks: 0            Seconds: 0
    > contract address:    0xd22De155853B67cE1cA3693FBE52EE958f755E7b
    > block number:        4
-   > block timestamp:     1644933888
+   > block timestamp:     1645096507
    > account:             0x27D8D15CbC94527cAdf5eC14B69519aE23288B95
    > balance:             99.98141896
    > gas used:            330726 (0x50be6)
@@ -101,7 +101,7 @@ Starting migrations...
    > Blocks: 0            Seconds: 0
    > contract address:    0x79051A2faFcC216A55d3897474012145d158F170
    > block number:        5
-   > block timestamp:     1644933889
+   > block timestamp:     1645096508
    > account:             0x27D8D15CbC94527cAdf5eC14B69519aE23288B95
    > balance:             99.97480444
    > gas used:            330726 (0x50be6)
@@ -116,7 +116,7 @@ Starting migrations...
    > Blocks: 0            Seconds: 0
    > contract address:    0xA65B87754E0A73860AA6B7eb6E95D79CD2d893d2
    > block number:        6
-   > block timestamp:     1644933889
+   > block timestamp:     1645096508
    > account:             0x27D8D15CbC94527cAdf5eC14B69519aE23288B95
    > balance:             99.96818992
    > gas used:            330726 (0x50be6)
@@ -127,39 +127,86 @@ Starting migrations...
 
    Deploying 'SupplyChain'
    -----------------------
-   > transaction hash:    0x67f85afee47d460dd3b037697b6ec30018394accbd58766ce7721dacf3156ab7
+   > transaction hash:    0xfbe4836656a05b0d70b691d810034a9a60be5f0748b75aca2f12b3ff6792a158
    > Blocks: 0            Seconds: 0
    > contract address:    0x23E2b13b08a22E9eEe431F862eC7A17aB1E99B98
    > block number:        7
-   > block timestamp:     1644933889
+   > block timestamp:     1645096508
    > account:             0x27D8D15CbC94527cAdf5eC14B69519aE23288B95
-   > balance:             99.91651448
-   > gas used:            2583772 (0x276cdc)
+   > balance:             99.91559856
+   > gas used:            2629568 (0x281fc0)
    > gas price:           20 gwei
    > value sent:          0 ETH
-   > total cost:          0.05167544 ETH
+   > total cost:          0.05259136 ETH
 
 
    > Saving migration to chain.
    > Saving artifacts
    -------------------------------------
-   > Total cost:          0.07813352 ETH
+   > Total cost:          0.07904944 ETH
 
 
 Summary
 =======
 > Total deployments:   6
-> Final cost:          0.08263826 ETH
+> Final cost:          0.08355418 ETH
 ```
 
 ## Run the client UI
 ```
 > npm run dev
 ```
-![image](https://user-images.githubusercontent.com/3337802/154078207-c03dbfdd-b7e9-498d-b72f-6342bfa2e8e9.png)
+![image](https://user-images.githubusercontent.com/3337802/154470947-7d2495b1-afd5-4607-9ca7-fff80f913dc8.png)
+
 
 ### Harvest
-![image](https://user-images.githubusercontent.com/3337802/154078303-58cfc02f-1cb8-44f3-9a01-db5720cc1598.png)
+![image](https://user-images.githubusercontent.com/3337802/154473013-7ccf79d9-3c0c-4e2c-9ec6-9f43c943c113.png)
+
+
+Click "Fetch Data 1", "Fetch Data 2", "Fetch Events"
+![image](https://user-images.githubusercontent.com/3337802/154473050-3a44b3ed-f847-4b28-82f7-89467cfdb36c.png)
+
+
+### Process
+![image](https://user-images.githubusercontent.com/3337802/154473071-d4d0b688-c536-4040-bb20-3c1dcf8b9d33.png)
+
+Click "Fetch Data 1", "Fetch Data 2", "Fetch Events"
+![image](https://user-images.githubusercontent.com/3337802/154473118-39f10fb8-6a85-438b-b45b-5c20b868de36.png)
+
+### Pack
+![image](https://user-images.githubusercontent.com/3337802/154473159-f1174580-936c-492c-a43a-e52c34356c24.png)
+
+Click "Fetch Data 1", "Fetch Data 2", "Fetch Events"
+![image](https://user-images.githubusercontent.com/3337802/154473190-65c3691a-0b86-4fee-b856-e48d26e22ef2.png)
+
+### Sell
+![image](https://user-images.githubusercontent.com/3337802/154473240-0f4da351-caaa-4138-a0b3-c71c121642f0.png)
+
+Click "Fetch Data 1", "Fetch Data 2", "Fetch Events"
+![image](https://user-images.githubusercontent.com/3337802/154473275-77cae9f6-ce8f-4a16-b5c5-c3b1bf24b0ff.png)
+
+### Buy
+![image](https://user-images.githubusercontent.com/3337802/154473316-556b332e-00cc-4880-9488-afe76ccdc751.png)
+
+Click "Fetch Data 1", "Fetch Data 2", "Fetch Events"
+![image](https://user-images.githubusercontent.com/3337802/154473332-c98d75fe-5341-4c41-86c8-827bf166b63d.png)
+
+### Ship
+![image](https://user-images.githubusercontent.com/3337802/154473359-f17dbdb9-0742-4aff-bb81-ffb39621c5f2.png)
+
+Click "Fetch Data 1", "Fetch Data 2", "Fetch Events"
+![image](https://user-images.githubusercontent.com/3337802/154473413-18077456-29d8-4d87-b34f-01da22ae15d8.png)
+
+### Recieve
+![image](https://user-images.githubusercontent.com/3337802/154473461-f60f338c-5328-4546-a433-57490b50100c.png)
+
+Click "Fetch Data 1", "Fetch Data 2", "Fetch Events"
+![image](https://user-images.githubusercontent.com/3337802/154473487-560efad8-182b-4140-847b-0a016dd626a7.png)
+
+### Purchase
+![image](https://user-images.githubusercontent.com/3337802/154473557-ec3ab9d1-cb3e-40a4-b047-b99e3ba9db42.png)
+Click "Fetch Data 1", "Fetch Data 2", "Fetch Events"
+![image](https://user-images.githubusercontent.com/3337802/154473577-cbcd1eb6-7c0e-42c9-a067-ba4ae1edcf2b.png)
 
 
 
